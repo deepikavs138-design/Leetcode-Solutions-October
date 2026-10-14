@@ -1,0 +1,23 @@
+#include <string>
+#include <algorithm>
+#include <iostream>
+
+class Solution {
+public:
+    std::string maxSumOfSquares(int num, int sum) {
+        std::string result = "";
+        
+        for (int i = 0; i < num; ++i) {
+            int digit = std::min(9, sum);
+            result += std::to_string(digit);
+            sum -= digit;
+        }
+        
+        // If there's still sum left or if we ended up with an invalid total sum
+        if (sum > 0) {
+            return "";
+        }
+        
+        return result;
+    }
+};
