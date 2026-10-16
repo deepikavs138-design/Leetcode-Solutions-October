@@ -1,0 +1,89 @@
+#include <vector>
+#include <unordered_map>
+
+using namespace std;
+
+class Solution {
+    static const int MOD = 1e9 + 7;
+    
+    // Segment Tree nodes to store sum, sum of squares, and lazy updates
+    vector<long long> tree_sum;
+    vector<long long> tree_sq;
+    vector<long long> lazy;
+    int n;
+
+    void build(int node, int start, int end) {
+        if (start == end) {
+            tree_sum[node] = 0;
+            tree_sq[node] = 0;
+            return;
+        }
+        int mid = start + (end - start) / 2;
+        build(2 * node, start, mid);
+        build(2 * node + 1, mid + 1, end);
+        tree_sum[node] = 0;
+        tree_sq[node] = 0;
+    }
+
+    void apply(int node, int start, int end, long long val) {
+        // (x + v)^2 = x^2 + 2*x*v + v^2 * (end - start + 1)
+        long long len = (end - start + 1);
+        tree_sq[node] = (tree_sq[node] + 2 * val * tree_sum[node] + val * val % MOD * len) % MOD;
+        tree_sum[node] = (tree_sum[node] + val * len) % MOD;
+        lazy[node] = (lazy[node] + val) % MOD;
+    }
+
+    void push(int node, int start, int end) {
+        if (lazy[node] != 0) {
+            int mid = start + (end - start) / 2;
+            apply(2 * node, start, mid, lazy[node]);
+            apply(2 * node + 1, mid + 1, end, lazy[node]);
+            lazy[node] = 0;
+        }
+    }
+
+    void update(int node, int start, int end, int l, int r, long long val) {
+        if (r < start || end < l) return;
+        if (l <= start && end <= r) {
+            apply(node, start, end, val);
+            return;
+        }
+        push(node, start, end);
+        int mid = start + (end - start) / 2;
+        update(2 * node, start, mid, l, r, val);
+        update(2 * node + 1, mid + 1, end, l, r, val);
+        tree_sum[node] = (tree_sum[node + 2 * (node == 0)] /* dummy */ + tree_sum[2 * node] + tree_sum[2 * node + 1]) % MOD; // simplified:
+        // Actually:
+        tree_sum[node] = (tree_sum[2 * node] + tree_sum[2 * node + 1]) % MOD;
+        tree_sq[node] = (tree_sq[2 * node] + tree_sq[2 * node + 1]) % MOD;
+    }
+
+public:
+    int sumCounts(vector<int>& nums) {
+        n = nums.size();
+        tree_sum.assign(4 * n, 0);
+        tree_sq.assign(4 * n, 0);
+        lazy.assign(4 * n, 0);
+
+        unordered_map<int, int> last_seen;
+        long long current_total_sum = 0;
+        long long ans = 0;
+
+        for (int j = 0; j < n; ++j) {
+            int prev_idx = -1;
+            if (last_seen.find(nums[j]) != last_seen.end()) {
+                prev_idx = last_seen[nums[j]];
+            }
+            last_seen[nums[j]] = j;
+
+            // Update segment tree for range [prev_idx + 1, j] by adding 1
+            update(1, 0, n - 1, prev_idx + 1, j, 1);
+
+            // The sum of squares of all subarrays ending at index j is the sum of tree_sq over [0, j]
+            // Since we maintain range updates, tree_sq[1] holds the total sum of squares for the current prefix
+            ans = (ans + tree_sq[1]) % MOD;
+        }
+
+        return ans;
+    }
+};
