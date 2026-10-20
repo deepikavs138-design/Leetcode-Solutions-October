@@ -1,0 +1,100 @@
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+class Solution {
+private:
+    bool canRotateMatch(const vector<int>& nums,
+                        const vector<int>& sortedNums,
+                        int start, int k) {
+        vector<int> lps(k, 0);
+
+        // Build KMP LPS array
+        for (int i = 1; i < k; i++) {
+            int j = lps[i - 1];
+
+            while (j > 0 &&
+                   sortedNums[start + i] != sortedNums[start + j]) {
+                j = lps[j - 1];
+            }
+
+            if (sortedNums[start + i] == sortedNums[start + j]) {
+                j++;
+            }
+
+            lps[i] = j;
+        }
+
+        // Search pattern in the cyclic block
+        int j = 0;
+
+        for (int i = 0; i < 2 * k - 1; i++) {
+            int value = nums[start + (i % k)];
+
+            while (j > 0 && value != sortedNums[start + j]) {
+                j = lps[j - 1];
+            }
+
+            if (value == sortedNums[start + j]) {
+                j++;
+            }
+
+            if (j == k) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+public:
+    long long sortableIntegers(vector<int>& nums) {
+        int n = nums.size();
+
+        vector<int> sortedNums = nums;
+        sort(sortedNums.begin(), sortedNums.end());
+
+        long long answer = 0;
+
+        // Check only divisors of n
+        for (int k = 1; k * k <= n; k++) {
+            if (n % k != 0) {
+                continue;
+            }
+
+            // Check divisor k
+            bool valid = true;
+
+            for (int start = 0; start < n; start += k) {
+                if (!canRotateMatch(nums, sortedNums, start, k)) {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if (valid) {
+                answer += k;
+            }
+
+            // Check paired divisor n / k
+            int other = n / k;
+
+            if (other != k) {
+                valid = true;
+
+                for (int start = 0; start < n; start += other) {
+                    if (!canRotateMatch(nums, sortedNums, start, other)) {
+                        valid = false;
+                        break;
+                    }
+                }
+
+                if (valid) {
+                    answer += other;
+                }
+            }
+        }
+
+        return answer;
+    }
+};
