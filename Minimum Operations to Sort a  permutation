@@ -1,0 +1,90 @@
+#include <vector>
+#include <queue>
+#include <algorithm>
+
+class Solution {
+public:
+    int minOperations(std::vector<int>& nums) {
+        int n = nums.size();
+        if (n <= 1) return 0;
+
+        // BFS from the sorted state (type 0, shift 0) to precompute shortest paths to all 2n states.
+        // State representation: id = type * n + shift
+        // type 0: rotation of [0, 1, ..., n-1]
+        // type 1: rotation of [n-1, ..., 1, 0]
+        
+        std::vector<std::vector<int>> dist(2, std::vector<int>(n, -1));
+        std::queue<std::pair<int, int>> q;
+
+        q.push({0, 0});
+        dist[0][0] = 0;
+
+        while (!q.empty()) {
+            auto [t, s] = q.front();
+            q.pop();
+
+            // Operation 1: Rotate Left by One
+            // shift becomes (shift + 1) % n
+            int next_t1 = t;
+            int next_s1 = (s + 1) % n;
+            if (dist[next_t1][next_s1] == -1) {
+                dist[next_t1][next_s1] = dist[t][s] + 1;
+                q.push({next_t1, next_s1});
+            }
+
+            // Operation 2: Reverse the entire array
+            // toggles type, and shift becomes (n - shift) % n
+            int next_t2 = 1 - t;
+            int next_s2 = (n - s) % n;
+            if (dist[next_t2][next_s2] == -1) {
+                dist[next_t2][next_s2] = dist[t][s] + 1;
+                q.push({next_t2, next_s2});
+            }
+        }
+
+        // Now, let's identify which (type, shift) the input `nums` corresponds to.
+        
+        // Check Type 0: nums should be a left rotation of [0, 1, ..., n-1]
+        // If nums is a rotation of [0, 1, ..., n-1], then nums[i] = (pos_zero + i) % n
+        int pos_zero = -1;
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] == 0) {
+                pos_zero = i;
+                break;
+            }
+        }
+
+        bool type0_valid = true;
+        for (int i = 0; i < n; ++i) {
+            if (nums[(pos_zero + i) % n] != i) {
+                type0_valid = false;
+                break;
+            }
+        }
+
+        if (type0_valid) {
+            return dist[0][pos_zero];
+        }
+
+        // Check Type 1: nums should be a rotation of [n-1, n-2, ..., 0]
+        // A type 1 state with shift `s` has elements: for index i, value is (n - 1 - (i - s + n) % n + n) % n ... 
+        // Let's check by finding where 0 is located. In a reversed rotation, 0 is at some position.
+        // Alternatively, we can check all possible shifts for type 1 directly:
+        for (int s = 0; s < n; ++s) {
+            bool match = true;
+            for (int i = 0; i < n; ++i) {
+                // For type 1 with shift s, the element at index i is (n - 1 - ((i - s + n) % n))
+                int expected = (n - 1 - ((i - s + n) % n));
+                if (nums[i] != expected) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return dist[1][s];
+            }
+        }
+
+        return -1;
+    }
+};
