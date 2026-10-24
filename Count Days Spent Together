@@ -1,0 +1,33 @@
+class Solution {
+public:
+    int countDaysTogether(string arriveAlice, string leaveAlice, string arriveBob, string leaveBob) {
+        // Convert a "MM-DD" date string to the day of the year (1 to 365)
+        auto dateToDay = [](string date) {
+            int daysInMonths[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+            int month = stoi(date.substr(0, 2));
+            int day = stoi(date.substr(3, 2));
+            
+            int totalDays = day;
+            for (int i = 0; i < month - 1; ++i) {
+                totalDays += daysInMonths[i];
+            }
+            return totalDays;
+        };
+
+        int aliceArrival = dateToDay(arriveAlice);
+        int aliceLeave = dateToDay(leaveAlice);
+        int bobArrival = dateToDay(arriveBob);
+        int bobLeave = dateToDay(leaveBob);
+
+        // Find the overlap between Alice's and Bob's stay duration
+        int overlapStart = max(aliceArrival, bobArrival);
+        int overlapEnd = min(aliceLeave, bobLeave);
+
+        // If overlapStart <= overlapEnd, they spent overlapping days together
+        if (overlapStart <= overlapEnd) {
+            return overlapEnd - overlapStart + 1;
+        }
+        
+        return 0;
+    }
+};
