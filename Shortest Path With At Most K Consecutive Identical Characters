@@ -1,0 +1,61 @@
+#include <vector>
+#include <string>
+#include <queue>
+#include <tuple>
+
+using namespace std;
+
+class Solution {
+public:
+    int shortestPath(int n, vector<vector<int>>& edges, string labels, int k) {
+        // Build adjacency list: adj[u] = list of {v, weight}
+        vector<vector<pair<int, int>>> adj(n);
+        for (const auto& edge : edges) {
+            int u = edge[0], v = edge[1], w = edge[2];
+            adj[u].push_back({v, w});
+        }
+        
+        // Min-heap storing {weight, node, count}
+        priority_queue<tuple<long long, int, int>, vector<tuple<long long, int, int>>, greater<tuple<long long, int, int>>> pq;
+        
+        // dist[node][count] to store the minimum weight to reach a state
+        // count ranges from 1 to k
+        vector<vector<long long>> dist(n, vector<long long>(k + 1, -15));
+        
+        // Start from node 0. The count for the starting node's label is 1.
+        pq.push({0, 0, 1});
+        dist[0][1] = 0;
+        
+        while (!pq.empty()) {
+            auto [w, u, count] = pq.top();
+            pq.pop();
+            
+            // If we reached the target node, return the total weight
+            if (u == n - 1) {
+                return w;
+            }
+            
+            if (w > dist[u][count]) continue;
+            
+            for (const auto& neighbor : adj[u]) {
+                int v = neighbor.first;
+                int weight = neighbor.second;
+                
+                int next_count = 1;
+                if (labels[u] == labels[v]) {
+                    next_count = count + 1;
+                }
+                
+                // Check constraint
+                if (next_count <= k) {
+                    if (dist[v][next_count] == -15 || w + weight < dist[v][next_count]) {
+                        dist[v][next_count] = w + weight;
+                        pq.push({w + weight, v, next_count});
+                    }
+                }
+            }
+        }
+        
+        return -1;
+    }
+};
