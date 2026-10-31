@@ -1,0 +1,93 @@
+#include <vector>
+
+using namespace std;
+
+class Solution {
+public:
+    int uniquePaths(vector<vector<int>>& grid) {
+        int m = grid.size();
+        int n = grid[0].size();
+        long long MOD = 1e9 + 7;
+
+        // go[i][j][0] stores the final landing position (r, c, dir) when moving RIGHT from (i, j)
+        // go[i][j][1] stores the final landing position (r, c, dir) when moving DOWN from (i, j)
+        // We can encode the state as a pair of coordinates and direction, or use a helper function.
+        
+        // Helper function to resolve mirror reflections iteratively
+        auto get_next = [&](int r, int c, int dir) {
+            // dir: 0 -> moving right, 1 -> moving down
+            while (true) {
+                int nr = r + (dir == 1 ? 1 : 0);
+                int nc = c + (dir == 0 ? 1 : 0);
+
+                // Check out of bounds
+                if (nr < 0 || nr >= m || nc < 0 || nc >= n) {
+                    return make_pair(-1, -1); // Invalid / Out of bounds
+                }
+
+                // If it hits a mirror cell, it reflects immediately
+                if (grid[nr][nc] == 1) {
+                    r = nr;
+                    c = nc;
+                    dir = 1 - dir; // Flip: right (0) <-> down (1)
+                } else {
+                    return make_pair(nr, nc);
+                }
+            }
+        };
+
+        // Precompute jumps for every cell and direction
+        vector<vector<pair<int, int>>> jumpR(m, vector<pair<int, int>>(n));
+        vector<vector<pair<int, int>>> jumpD(m, vector<pair<int, int>>(n));
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                jumpR[i][j] = get_next(i, j, 0); // Moving right from (i, j)
+                jumpD[i][j] = get_next(i, j, 1); // Moving down from (i, j)
+            }
+        }
+
+        // dp[i][j][0] = ways arriving at (i, j) moving right
+        // dp[i][j][1] = ways arriving at (i, j) moving down
+        vector<vector<vector<long long>>> dp(m, vector<vector<long long>>(n, vector<long long>(2, 0)));
+
+        // Base initialization: from (0, 0) we can make our first moves
+        // If first move is right:
+        auto targetR = jumpR[0][0];
+        if (targetR.first != -1) {
+            dp[targetR.first][targetR.second][0] = (dp[targetR.first][targetR.second][0] + 1) % MOD;
+        }
+
+        // If first move is down:
+        auto targetD = jumpD[0][0];
+        if (targetD.first != -1) {
+            dp[targetD.first][targetD.second][1] = (dp[targetD.first][targetD.second][1] + 1) % MOD;
+        }
+
+        // Standard DP traversal
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                // Skip if this cell cannot be reached
+                long long total_ways = (dp[i][j][0] + dp[i][j][1]) % MOD;
+                if (total_ways == 0) continue;
+                
+                // If we are already at the destination, don't propagate further
+                if (i == m - 1 && j == n - 1) continue;
+
+                // Propagate moving RIGHT from (i, j)
+                auto tr = jumpR[i][j];
+                if (tr.first != -1) {
+                    dp[tr.first][tr.second][0] = (dp[tr.first][tr.second][0] + total_ways) % MOD;
+                }
+
+                // Propagate moving DOWN from (i, j)
+                auto td = jumpD[i][j];
+                if (td.first != -1) {
+                    dp[td.first][td.second][1] = (dp[td.first][td.second][1] + total_ways) % MOD;
+                }
+            }
+        }
+
+        return (dp[m - 1][n - 1][0] + dp[m - 1][n - 1][1]) % MOD;
+    }
+};
